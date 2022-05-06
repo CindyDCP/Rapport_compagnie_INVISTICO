@@ -1,0 +1,680 @@
+---
+title: <span style="color:darkblue"> *Les déterminants de la satisfaction des clients* </span>
+author: "Cindy Porfirio"
+output:
+  html_document:
+    toc: true
+    theme: united
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message=FALSE,warning=FALSE)
+```
+
+```{r}
+
+# PACKAGES 
+
+library(lmtest)
+library(sandwich)
+library(sjPlot)
+library(rstatix)
+library(ggplot2)
+library(kableExtra)
+```
+
+```{r}
+don<-read.table("airline.csv",sep=",",header=T)
+don<-don[complete.cases(don), ]
+
+```
+
+# Introduction
+
+La satisfaction des clients est au cœur des problématiques des entreprises et notamment des compagnies aériennes.
+La forte concurrence dans le secteur aérien depuis l'apparition des compagnies low cost amènent les autres compagnies à satisfaire au mieux leurs clients pour les fidéliser.
+La crise actuelle du COVID-19 frappe fortement ce secteur ce qui renforce l'enjeu financier de la fidélisation.
+Cette poursuite de satisfaction se traduit par de nombreux investissements dans le marketing pour attirer les consommateurs.
+La satisfaction se définit comme « un état psychologique résultant d'un expérience d'achat » (Vahamme 2022).
+Elle est par conséquent un processus cognitif dans le sens où, elle résulte de la confrontation entre les attentes et l'expérience du produit.
+Cette recherche de satisfaction est alimentée par la volonté d'augmenter le chiffre d'affaire et le bénéfice des entreprises.
+En général, un client satisfait est un client qui revient.
+La création d'une confiance entre la compagnie et le client est primordiale pour se différencier de la concurrence.
+Un consommateur satisfait construira une relation de confiance avec la marque et sera plus fidèle sur le long terme.
+C'est la raison pour laquelle les entreprises réalisent des questionnaires pour mesurer le niveau de satisfaction des clients (Vanhamme,2022).
+
+
+# Revue de la littérature
+
+L'expérience des passagers aériens doit être sans cesse améliorer.
+Dans les compagnies aériennes, les clients abonnés à un programme de fidélité bénéficient d'avantages de plus en plus élevées en fonction du nombre de miles qu'ils ont pu générer à travers leurs achats.
+Autrement dit, la fidélité d'un client se caractérise par la répétition d'achats de produits ou de services issus d'une même marque ou enseigne.
+Les clients fidèles sont plus rentables que les clients occasionnels.
+
+« Bien que la grande majorité de la littérature suggère une relation directe et positive entre la satisfaction de la clientèle et la fidélisation de la clientèle (Wang, 2014, Hussain et al., 2015), une conclusion clé dans Dolnicar et al. (2011) est qu'une tentative d'améliorer la satisfaction des clients ne s'est pas avérée avoir un impact important sur la fidélité.».
+(Hongweijiang et al. 2016)
+
+La satisfaction d'un client est déterminé par plusieurs canaux : la communication de l'entreprise via les réseaux sociaux par exemple et la qualité du produit ou du service vendu.
+Dans notre étude, nous nous concentrerons sur les caractéristiques individuelles de l'individu à savoir l'âge, le genre, le motif du voyage (personnel ou professionnel), la classe qu'il a choisi (business, Eco ou Eco plus), s'il bénéfice d'un programme de fidélité mais aussi, autour du service : la distance du vol, le retard de départ et d'arrivée (en minutes) et les notes que le client a donné sur 5 que ce soit pour la nourriture et les boissons, le confort des chaises, l'emplacement de la porte, le support en ligne etc..
+Les compagnies aériennes proposant de meilleurs services que leurs concurrents construisent une meilleure base pour la fidélisation de la clientèle (Curry et Gao, 2012).
+
+Si pour Oyewole (2001), le sexe, la profession et le niveau de scolarité jouent sur la satisfaction de la clientèle dans le secteur aérien, l'âge et le revenu du ménage n'y jouent pas.
+En revanche, pour Clems et coll.
+(2008), les caractéristiques démographiques sociales telles que l'âge, le sexe et le revenus impactent le niveau de satisfaction.
+Dans leur étude, les passagers âgés de 50 à 60 ans ont plus tendances à attribuer une bonne note que les moins de 30 ans.
+(Hongweijiang et al. 2016).
+L'appartenance à un programme de fidélité joue aussi sur la perception du service aérien.
+(Gilbert et Wxong, 2003).
+De même que le prix du billet est un déterminant important.
+(Hongweijiang et al. 2016).
+On distingue un facteur indépendant de la volonté de la compagnie aérienne et un facteur directement lié au service client.
+Par exemple, un voyage retardé indépendamment de la cause affectera la satisfaction du client.
+De même, le service de propreté joue également sur sa satisfaction : un environnement propre favorisera la satisfaction des clients.
+La qualité se mesure avant, pendant et après le vol.
+Par ailleurs, le nom de la marque joue sur la confiance des clients dans les produits.
+(Chen et Chang, 2008).
+
+![](figure2.png)
+
+
+A partir des données clients, nous effectuerons des recherches pour comprendre les origines de la satisfaction.
+Nous répondrons aux questions suivantes : un client bénéficiant d'un programme de fidélité est-il plus satisfait qu'un client n'en bénéficiant pas toutes choses égales par ailleurs ?
+Un client voyageant en business class est-il plus satisfait qu'un client voyageant en Eco ou Eco Plus toutes choses égales par ailleurs ?
+Les deux effets sont-ils cumulatifs ?
+Pour cela, nous nous baserons sur les données clients collectées en 2019.
+
+```{r,echo=FALSE,eval=F}
+
+# MOYENNE 
+mean(don$Seat.comfort,na.rm=T)
+mean(don$Flight.Distance,na.rm=T)
+table(don$Type.of.Travel)
+table(don$age_jeune)
+table(don$satisfaction)
+
+```
+
+```{r}
+
+# Flight distance 
+
+don$Flight.Distance<-as.numeric(don$Flight.Distance)
+
+# Age 
+
+don$Age<-as.numeric(don$Age)
+don$age_jeune<-ifelse(don$Age<=30,1,0)
+
+# Genre
+don$Gender<-as.factor(don$Gender)
+levels(don$Gender)<-c("female","male")
+don$Gender<-ifelse(don$Gender=="female",1,0)
+
+# Satisfaction 
+
+don$satisfaction<-as.factor(don$satisfaction)
+don$satisfaction<-ifelse(don$satisfaction=="satisfied",1,0)
+
+# Type de client
+
+don$Customer.Type<-as.factor(don$Customer.Type)
+
+levels(don$Customer.Type)<-c("disloyal","loyal")
+don$Customer.Type<-ifelse(don$Customer.Type=="loyal",1,0)
+
+# Type of Travel 
+
+don$Type.of.Travel<-as.factor(don$Type.of.Travel)
+
+levels(don$Type.of.Travel)<-c("business","personal")
+don$Type.of.Travel<-ifelse(don$Type.of.Travel=="personal",1,0)
+
+# Class
+
+don$Class<-as.factor(don$Class)
+levels(don$Class)<-c("business","eco","ecoplus")
+
+don$business<-ifelse(don$Class=="business",1,0)
+don$eco<-ifelse(don$Class=="eco",1,0)
+don$ecoplus<-ifelse(don$Class=="ecoplus",1,0)
+
+```
+
+# Description des données : exploration
+
+```{r, out.width="50%"}
+# TABLEAU DESCRIPTIF 
+
+stat <-get_summary_stats(don, show = c("mean", "sd", "min", "max"))
+
+kable(stat, digits = 3) %>%
+kable_classic()
+
+```
+
+```{r}
+table_genre<-table(don$Gender)
+prop_genre<-prop.table(table_genre)
+
+loyal<-table(don$Customer.Type)
+p<-prop.table(loyal)
+
+
+travel<-table(don$Type.of.Travel)
+prop_travel<-prop.table(travel)
+
+
+classtable<-table(don$Class)
+
+
+prop_class<-prop.table(classtable)
+
+sat<-table(don$satisfaction)
+propsat<-prop.table(sat)
+
+```
+
+Plusieurs recodages ont été apporté durant notre étude.[^1]
+
+[^1]: La variable Customer Type (1= loyal, 0= disloyal, satisfaction (1= satisfied, 0=dissatisfied), gender (1=female, 0=male), âge jeune (1= si inférieur à 30, 0 sinon).
+    Ce découpage se calque sur l'étude (Hongweijiang et al. 2016).
+
+```{r}
+df<- data.frame(class = c(61990/129487,58117/129487,9380/129487 ),groupe = c("Business class","Eco","Eco plus"))
+
+
+
+par(mfrow=c(1,2))
+
+ggplot_df<- ggplot(data=df, aes(x=groupe , y=class)) + 
+  geom_bar(stat="identity", color="red",  fill="white") + 
+  xlab("Class (xi)")+ 
+  ylab("Fréquence (fi)") + 
+  geom_text(aes(label=scales::percent(class)), 
+  position = position_stack(vjust = .5))
+
+ggplot_df
+```
+
+Le tableau présente les informations démographiques et les notes attribuées par les clients aux différents services.
+L'échantillon a une répartition relativement également en termes de genre (49% de femmes et 50% d'hommes).
+De plus, nous retrouvons une répartition très proche en termes de satisfaction: 45% des individus ne sont pas satisfaits et 54% le sont.
+La plupart des voyageurs bénéficient d'un programme de fidélité (81%) et voyage pour le travail (69%).
+D'après le graphique, environ 48% des répondants voyagent en business class, 45% en Eco et seulement 7% en Eco Plus.
+
+# Résultats des modèles de probabilité linéaire
+
+## LPM : fidélisation de la clientèle
+
+Le modèle de probabilité linéaire 1 : De combien augmente la satisfaction des clients bénéficiant d'un programme de fidélité?
+
+```{r,include=F}
+
+# MODELE DE PROBABILITE LINEAIRE
+
+loyal<-lm(satisfaction~Customer.Type,data=don)
+
+#  coeftest avec des  ́ecarts-types robustes
+
+  # tester le coefficient
+# H0= mon coefficient est nulle 
+# H1= mon coefficient est différent de 0 dans la population 
+
+# CORRECTION DE WHITE
+
+coeftest(loyal, vcov. = vcovHC, type = "HC1")
+
+```
+
+```{r, include=FALSE}
+loyal2<- lm(satisfaction~Customer.Type+age_jeune,data=don)
+
+
+loyal3<-lm(satisfaction~Customer.Type+Gender+Type.of.Travel+age_jeune,data=don)
+```
+
+```{r}
+
+# Tableau de régression 
+
+tab_model(loyal,loyal2,loyal3, show.r2 = FALSE, show.ci = FALSE,
+show.se = TRUE, vcov.fun = "vcovHC", vcov.type = "HC1",
+dv.labels = c("Model 1 (satisfaction = 1)", "Model 2 (satisfaction  = 1)", "Model 3 (satisfaction  = 1)"), digits = 3,
+p.style = "stars")
+
+```
+
+Dans un premier jet, le modèle de probabilité linéaire est acceptable malgré ces défauts (probabilité inférieur à 0 et supérieur à 1).
+Souvent ce coefficient est surestimé avec ce modèle.
+Néanmoins, il nous permet de connaître la tendance, le sens de la relation.
+
+Nous voyons ainsi qu'un client bénéficiant d'un programme de fidélité augmente la probabilité de satisfaction.
+
+Le fait de bénéficier d'un programme de fidélité, augmente en moyenne de 37 points de pourcentage la probabilité que le client soit satisfait (p-valeur \<0.001).
+
+Toutes choses égales par ailleurs (modèle 3), le fait que le client soit bénéficiaire d'un programme de fidélité augmente en moyenne de 46 points de pourcentage la probabilité de le voir satisfait.
+(p-valeur \<0.001).
+Tous les coefficients sont très significatifs.
+[^2]
+
+[^2]: Les coefficients sont corrigés de l'hétéroscédasticité.
+
+Le genre, le type de voyage et l'âge joue très significativement sur la satisfaction du client.
+Les femmes ont tendances à être plus satisfaites que les hommes.
+En revanche, les plus jeunes sont moins satisfaits ce qui est conforme aux études (Hongweijiang et al. 2016).
+Les individus voyageant pour des raisons personnelles sont moins satisfaits que ceux voyageant pour des raisons professionnelles.
+
+## LPM : classe de la clientèle
+
+Le modèle de probabilité linéaire 2 : De combien augmente la satisfaction des clients voyageant en business class par rapport à Eco ou Eco plus?
+
+```{r,include=F}
+class<-lm(satisfaction~ecoplus+eco,data=don)
+```
+
+```{r,include=F}
+class2<-lm(satisfaction~ecoplus+eco+Gender+Type.of.Travel+age_jeune,data=don)
+```
+
+```{r}
+# Tableau de régression 
+tab_model(class,class2, show.r2 = FALSE, show.ci = FALSE,
+show.se = TRUE, vcov.fun = "vcovHC", vcov.type = "HC1",
+dv.labels = c("Modele 1 (satisfaction = 1)", "Modele 2 (satisfaction  = 1)"), digits = 3,
+p.style = "stars")
+
+```
+
+Maintenant nous nous intéressons à l'effet de la classe du voyage sur la satisfaction.
+Nous observons que le fait de voyager en "Eco" plutôt qu'en business class diminue très significativement de 31 points de pourcentage la probabilité de satisfaction (p-valeur \<0.001).
+De plus, le fait de voyager en "Eco Plus" plutôt qu'en business class diminue de 28 points de pourcentage la probabilité de satisfaction .(p-valeur \<0.001).
+Tous les coefficients sont très significatifs.
+
+Toutes choses égales par ailleurs (modèle 2), le fait que le client voyage en Eco plutôt qu'en business diminue en moyenne de 35 points de pourcentage la probabilité de satisfaction (p-valeur \<0.001) et de 32 points de pourcentage pour les individus voyageant en Eco plus (p-valeur \<0.001).
+
+Malgré l'introduction de la variable genre, type de voyage et âge, la tendance reste la même voire la renforce.
+
+# Résultats des modèles sur la fidélisation de la clientèle
+
+## Modèle Probit
+
+L'interprétation d'un modèle n'est pas la même qu'un modèle de régression linéaire.
+Nous étudierons l'effet marginal c'est-à-dire le changement discret de la probabilité que cette variable « satisfaction » passe de 0 à 1.
+(1 signifiant que le client est satisfait, 0 le client n'est pas satisfait).
+
+Nous étudierons le lien entre le fait de bénéficier d'un programme de fidélité et la satisfaction toutes choses égales par ailleurs.
+Nous allons comparer la probabilité de satisfaction prédite pour deux individus hypothétiques qui diffèrent par le suivi à un programme de fidélité.
+
+Autrement dit, nous allons fixer la moyenne des autres variables telles que la distance du vol (moyenne= 1981), la note attribuée au confort des sièges, au service à bord, au service d'enregistrement, l'embarquement en ligne, le divertissement en vol etc.
+
+Dans la régression Probit, parce qu'on utilisera de grands échantillons, la fonction normale standard de distribution des fréquences cumulées peut être utilisée pour modéliser la fonction de régression lorsque la variable dépendante est binaire.
+
+Nous commencerons par un modèle Probit simple puis nous l'étendrons avec un modèle Probit multiple.
+
+```{r,include=FALSE}
+loyalp <- glm(satisfaction ~ Customer.Type, family = binomial(link = "probit"),data = don)
+
+
+coeftest(loyalp, vcov. = vcovHC,type = "HC1")
+```
+
+
+```{r}
+# Production du tableau de résultat du modèle simple 
+
+tab_model(loyalp, show.r2 = FALSE,transform = NULL,
+show.ci = FALSE, show.se = TRUE,vcov.fun = "vcovHC", vcov.type = "HC1",
+dv.labels = "Probit (1)",digits = 3, p.style = "stars")
+```
+
+
+```{r,echo=T}
+# 1. calculer la valeur prédite pour les clients bénéficiant d'un programme de fidélité
+
+predictions <- predict(loyalp, newdata = data.frame("Customer.Type" = c(0,
+1)), type = "response")
+```
+
+
+```{r}
+# 2. Calculer la différence en termes de probabilités
+
+diff(predictions)
+
+```
+
+Si le client bénéficie d'un programme de fidélité, la probabilité de le voir satisfait augmente de 37 points de pourcentage.
+
+On peut désormais utiliser un modèle Probit multiple en ajoutant par exemple le genre et l'âge.
+
+```{r,echo=T}
+# Estimer le modèle Probit multiple avec le type de client comme régresseur 1 et genre comme régresseur 2
+
+loyalp2 <- glm(satisfaction ~ Customer.Type + age_jeune + Gender, family = binomial(link ="probit"), data = don)
+```
+
+
+```{r,include=F}
+coeftest(loyalp2, vcov. = vcovHC,
+type = "HC1")
+```
+
+```{r,include=F}
+# 1. calculer la valeur prédite pour un type de client = Loyal
+
+pred2 <- predict(loyalp2,newdata = data.frame("Customer.Type" = c(0,1), "age_jeune" =1, "Gender"=0, type = "response"))
+```
+
+```{r}
+# 2. Calculer la différence en termes de probabilités
+
+diff(pred2)
+```
+
+Le fait d'être bénéficiaire d'un programme de fidélité en maintenant constant l'âge et le genre augmente de 99 points de pourcentage la probabilité de satisfaction.
+
+
+## Modèle Logit
+
+```{r,include=F}
+# estimer un modèle logit simple : 1 régresseur (type de client)
+
+loyal_logit <- glm(satisfaction~Customer.Type ,family = binomial(link = "logit"), data= don)
+
+coeftest(loyal_logit, vcov. = vcovHC,type = "HC1")
+
+# 1. calculer la valeur prédite pour un type de client = Loyal 
+
+pred5 <- predict(loyal_logit,newdata = data.frame("Customer.Type" = c(0,1),"age_jeune"=0, "Gender"=0, type = "response"))
+
+```
+
+```{r,echo=T}
+newbusiness<-data.frame(
+                "Customer.Type"= c(0,1),
+                "Type.of.Travel"=0, 
+                "business"=1,
+                "Gender"=0, 
+  "age_jeune"=0,
+"Flight.Distance"=mean(don$Flight.Distance),
+             "Seat.comfort"= mean(don$Seat.comfort),
+           "Departure.Arrival.time.convenient"  = mean(don$Departure.Arrival.time.conv),
+               "Food.and.drink"=mean(don$Food.and.drink), 
+              "Gate.location"= mean(don$Gate.location),
+               mean(don$Inflight.wifi.service),
+           "Inflight.wifi.service"=mean(don$Inflight.wifi.service),
+"Inflight.entertainment"=mean(don$Inflight.entertainment),
+              "Online.support"=mean(don$Online.support),
+             "Ease.of.Online.booking"=mean(don$Ease.of.Online.booking),
+             "On.board.service"=mean(don$On.board.service),
+             "Leg.room.service"=mean(don$Leg.room.service),
+             "Baggage.handling"=mean(don$Baggage.handling),
+               "Checkin.service"=mean(don$Checkin.service),
+               "Cleanliness"=mean(don$Cleanliness),
+              "Online.boarding"= mean(don$Online.boarding),
+             "Departure.Delay.in.Minutes"=mean(don$Departure.Delay.in.Minutes),
+              "Arrival.Delay.in.Minutes"=mean(don$Arrival.Delay.in.Minutes))
+```
+
+```{r,include=F}
+logit_multiple<- glm(satisfaction ~ Customer.Type + Type.of.Travel + business + Gender + age_jeune + Flight.Distance + Seat.comfort + Departure.Arrival.time.convenient + Food.and.drink + Gate.location + Inflight.wifi.service + Inflight.entertainment + Online.support + Ease.of.Online.booking +  On.board.service + Leg.room.service +  Baggage.handling + Checkin.service + Cleanliness + Online.boarding + Departure.Delay.in.Minutes + Arrival.Delay.in.Minutes,
+family = binomial(link = "logit"), data = don)
+
+
+predict_logitm<-predict(logit_multiple,newdata=newbusiness,
+                        type ="response")
+
+diff(predict_logitm)
+```
+
+```{r}
+tab_model(loyal3, loyalp,loyalp2,loyal_logit,logit_multiple,
+show.r2 = FALSE, transform = NULL, show.ci = FALSE, show.se = TRUE, vcov.fun
+= "vcovHC", vcov.type = "HC1", digits = 3, p.style = "stars",
+dv.labels = c("LPM", "Probit (1)","Probit multiple (2)", "Logit simple (1)", "Logit multiple (2)"))
+```
+
+Comme nous avions vu, le coefficient estimé sur le modèle LPM sur la dummy d'appartenance à un programme de fidélité est de 0.45, ce qui indique que la probabilité de satisfaction pour les clients fidélisés est 45 % plus grande que pour les clients non fidélisés ayant les mêmes caractéristiques par ailleurs.
+
+Afin d'obtenir une estimation plus fiable et moins biaisée, nous estimons plusieurs modèles en contrôlant par les variables proposées dans la littérature susceptibles d'influencer la probabilité de satisfaction.
+La non linéarité rend l'interprétation des estimations des coefficients plus difficile que pour le modèle LPM.
+Pour connaître cette différence, nous calculons la différence entre les deux probabilités.
+
+Toutes choses égales par ailleurs (modèle 3) [^3], nous obtenons une estimation positive pour le coefficients de la satisfaction.
+Le fait de bénéficier d'un programme de fidélité, fait augmenter de 45 points de pourcentage la probabilité de satisfaction.
+
+[^3]: Les variables les plus représentées ont été sélectionné dans l'étude à savoir: les voyages professionnels, les voyages en business class, les hommes, les plus de 30 ans.
+    Nous avons pris la moyenne des notes attribuées aux services de la compagnie tels que la propreté, le confort...
+
+Les autres modèles fournissent des preuves similaires de la différence de satisfaction en fonction de la fidélisation.
+
+# Résultats des modèles sur la classe utilisée
+
+## Modèle Probit
+
+```{r,include=F}
+classp<- glm(satisfaction ~ business, family = binomial(link ="probit"), data = don)
+```
+
+
+```{r,include=FALSE}
+coeftest(classp, vcov. = vcovHC,type = "HC1")
+
+# 1. calculer la valeur prédite pour business class
+
+
+predclass<- predict(classp,newdata = data.frame("business" = c(0,1) ,type = "response"))
+```
+
+```{r,include=FALSE}
+
+# 2. Calculer la différence en termes de probabilités
+
+diff(predclass)
+```
+
+```{r,echo=T}
+classp2<- glm(satisfaction ~ business+ age_jeune + Gender   , family = binomial(link ="probit"), data = don)
+```
+
+
+```{r,include=F}
+coeftest(classp2, vcov. = vcovHC,type = "HC1")
+
+# 1. calculer la valeur prédite pour business class
+
+
+predclass1<- predict(classp2, newdata = data.frame("business"=c(0,1), "age_jeune"=0, "Gender"=1, type= "response"))
+
+```
+
+```{r}
+# 2. Calculer la différence en termes de probabilités
+
+diff(predclass1)
+```
+
+Toute choses égales par ailleurs, le fait de voyager en business class, augmente la probabilité de satisfaction de 80 points de pourcentage.
+
+## Modèle Logit
+
+Comme la régression Probit, il n'y a pas d'interprétation simple des coefficients du modèle.
+Il est préférable de considérer les différences dans les probabilités prédites.
+
+```{r,include=F}
+# estimer un modèle logit simple : 1 régresseur (type de client)
+
+businessclass <- glm(satisfaction~business,family = binomial(link = "logit"), data= don)
+
+
+coeftest(businessclass, vcov. = vcovHC,type = "HC1")
+
+# 1. calculer la valeur prédite pour un type de class= business
+
+
+predictions4 <- predict(businessclass,newdata = data.frame("business" = c(0,1), type = "response"))
+
+# 2. Calculer la différence en termes de probabilités
+
+diff(predictions4)
+```
+
+```{r,echo=T}
+newbs<-data.frame(
+                "Customer.Type"=1 ,
+                "Type.of.Travel"=0, 
+                "business"=c(0,1),
+                "Gender"=0,
+                "age_jeune"=0,
+                "Flight.Distance"=mean(don$Flight.Distance),
+                "Seat.comfort"= mean(don$Seat.comfort),
+                "Departure.Arrival.time.convenient"  = mean(don$Departure.Arrival.time.conv),
+               "Food.and.drink"=mean(don$Food.and.drink), 
+              "Gate.location"= mean(don$Gate.location),
+               mean(don$Inflight.wifi.service),
+           "Inflight.wifi.service"=mean(don$Inflight.wifi.service),
+"Inflight.entertainment"=mean(don$Inflight.entertainment),
+              "Online.support"=mean(don$Online.support),
+             "Ease.of.Online.booking"=mean(don$Ease.of.Online.booking),
+             "On.board.service"=mean(don$On.board.service),
+             "Leg.room.service"=mean(don$Leg.room.service),
+             "Baggage.handling"=mean(don$Baggage.handling),
+               "Checkin.service"=mean(don$Checkin.service),
+               "Cleanliness"=mean(don$Cleanliness),
+              "Online.boarding"= mean(don$Online.boarding),
+             "Departure.Delay.in.Minutes"=mean(don$Departure.Delay.in.Minutes),
+              "Arrival.Delay.in.Minutes"=mean(don$Arrival.Delay.in.Minutes))
+```
+
+```{r,include=F}
+logit_multiple<- glm(satisfaction ~ Customer.Type + Type.of.Travel + business  + Gender + age_jeune + Flight.Distance + Seat.comfort + Departure.Arrival.time.convenient + Food.and.drink + Gate.location + Inflight.wifi.service + Inflight.entertainment + Online.support + Ease.of.Online.booking +  On.board.service + Leg.room.service +  Baggage.handling + Checkin.service + Cleanliness + Online.boarding + Departure.Delay.in.Minutes + Arrival.Delay.in.Minutes,
+family = binomial(link = "logit"), data = don)
+
+
+predict_logitm<-predict(logit_multiple,newdata=newbs,
+                        type ="response")
+```
+
+```{r}
+diff(predict_logitm)
+```
+
+Toutes choses égales par ailleurs, le fait de voyager en business class, fait augmenter de 17 points de pourcentage la probabilité de satisfaction.
+
+```{r}
+tab_model(class2,classp,classp2,businessclass, logit_multiple, show.r2 = TRUE,
+transform = NULL,
+show.ci = FALSE,
+show.se = TRUE,
+vcov.fun = "vcovHC", vcov.type = "HC1",
+dv.labels = c("LPM", "Probit (1)","Probit (2)","Logit (1)","Logit (2)"),
+collapse.se = TRUE, digits = 3, p.style = "stars")
+```
+
+Les différents modèles diffèrent par la manière dont ils modélisent la probabilité de satisfaction.
+Nous comparons deux individus qui partagent les mêmes caractéristiques individuelles (femme âgée de plus de 30 ans, voyageant pour des raisons professionnelles et bénéficiant d'un programme de fidélité) ainsi que des valeurs moyennes de tous les régresseurs numériques (notes attribuées aux services).
+Ils diffèrent seulement par la classe du vol (business class ou non).
+Tous les coefficients sont significatifs.
+
+Les modèles (2) utilisent des spécifications de régression incluant différentes caractéristiques des candidats et des variables d'indicateurs de notation des services.
+
+# Modèle intéractif entre les deux variables d'intérêt
+
+```{r}
+probitc<- glm(satisfaction ~ Customer.Type * ( eco + ecoplus) + Type.of.Travel + Gender + age_jeune + Flight.Distance + Seat.comfort + Departure.Arrival.time.convenient + Food.and.drink + Gate.location + Inflight.wifi.service + Inflight.entertainment + Online.support + Ease.of.Online.booking +  On.board.service + Leg.room.service +  Baggage.handling + Checkin.service + Cleanliness + Online.boarding + Departure.Delay.in.Minutes + Arrival.Delay.in.Minutes,
+family = binomial(link = "logit"), data = don)
+```
+
+```{r}
+tab_model(probitc, show.r2 = TRUE,
+transform = NULL,
+show.ci = FALSE,
+show.se = TRUE,
+vcov.fun = "vcovHC", vcov.type = "HC1",
+dv.labels = c("Logit (3)"),
+collapse.se = TRUE, digits = 3, p.style = "stars")
+```
+
+Le dernier modèle propose des interactions entre les deux variables sur lesquelles nous travaillons depuis le début séparemment.
+Un client fidélisé et voyageant business class sera-t-il plus satisfait, qu'un client fidélisé voyageant en Eco ou Ecoplus?
+Le modèle exprime le contraire puisque les estimations sont positives: les clients fidélisés et voyageant en Eco et Eco plus sont plus satisfaits que les clients fidélisés et voyageant en business class.
+Un client fidélisé voyageant en Eco sera plus satisfait de 32% par rapport à un client fidélisé voyageant en business class.
+De plus, un client fidélisé voyageant en Eco plus sera plus satisfait de 91% par rapport à un client fidélisé voyageant en business class.
+Ce résultat montre qu'il n'est pas nécessairement plus judicieux de fidéliser les clients voyageant en business class pour augmenter la satisfaction.
+
+# Discussion
+
+Il n'est pas évident de savoir comment décider quel modèle utiliser.
+Les trois modèles permettent de vérifier la robustesse des résultats.
+Si ces modèles expriment la même tendance, nous pouvons considérer que les effets sont réelles.
+
+D'une part, le modèle de probabilité linéaire présente l'inconvénient de ne pas pouvoir saisir la nature non linéaire de la fonction de régression de population.
+De l'autre part, les modèles Probit et logit sont plus difficiles à interpréter mais saisissent mieux les non-linéarités que l'approche linéaire: les deux modèles proposent des prédictions de probabilités se trouvant à l'intérieur de l'intervalle.
+
+Notre étude est confrontée à plusieurs limites: le choix des variables est limité.
+Un déterminant important de la satisfaction est le prix du billet, la catégorie socioprofessionnelle, le niveau de scolarité et l'état matrimoniale.
+(Hongweijiang et al. 2016).
+
+# Conclusion
+
+Les différents modèles prouvent qu'il existe bien un effet du fait d'être un client fidélisé sur la probabilité de satisfaction.
+Dans toutes les spécifications, l'effet estimé est positif et est significativement différent de zéro au niveau de 1%.
+
+Si plusieurs études s'intéressent aux variables sociodémographiques ou à la qualité des différents services, très peu font la distinction entre le type de classe que les clients utilisent pour voyager : Eco, Eco plus ou business class.
+Notre étude permet ainsi d'ajouter une pierre à l'édifice à la question de la satisfaction.
+Le fait de bénéficier d'un programme de fidélité augmente la satisfaction du client.
+Ce résultat montre l'importance de sensibiliser les clients au programme.
+La compagnie aura intérêt à informer les clients sur les avantages du programme de fidélité sur le site internet.
+Il serait intelligent de créer une page dédiée qui détaille les avantages du programme, le nombre de points obtenu à chaque achat etc..
+La fidélisation est évidemment un enjeu financier majeur.
+
+De même que le fait de voyager en business class plutôt qu'en Eco augmente la probabilité de satisfaction.
+En revanche, notre étude propose un résultat surprenant : la probabilité de satisfaction des clients fidélisés voyageant en business class n'est pas plus grande que celle voyageant en Eco ou Eco plus.
+Si l'étude de Hongweijiang (2016) montre l'absence de relation entre le fait d'être satisfait et la fidélisation, il serait intéressant de proposer une nouvelle étude pour vérifier cela.
+
+# Bibliographie
+
+-   Chen, C. F., & Chang, Y. Y.
+    (2008).
+    Airline brand equity, brand preference, and purchase intentions---The moderating effects of switching costs. 
+    Journal of Air Transport Management, 14(1), 40-42.
+
+-   Clemes, M. D., Gan, C., Kao, T. H., & Choong, M.
+    (2008).
+    An empirical analysis of customer satisfaction in international air travel. 
+    Innovative marketing, 4(2).
+
+-   Curry, N., & Gao, Y.
+    (2012).
+    Low-cost airlines---A new customer relationship?
+    An analysis of service quality, service satisfaction, and customer loyalty in a low-cost setting. 
+    Services Marketing Quarterly, 33(2), 104-118.
+
+-   Gilbert, D., & Wong, R. K.
+    (2003).
+    Passenger expectations and airline services: a Hong Kong based study. 
+    Tourism Management, 24(5), 519-532.
+
+-   Hongweijiang et al. (2016).
+    Une enquête sur la qualité du service, la satisfaction de la clientèle et la fidélité sur le marché chinois des compagnies aériennes.
+
+
+-   Oyewole, P. (2001).
+    Consumer's socio-demographic characteristics and satisfaction with services in the airline industry. 
+    Services Marketing Quarterly, 23(2), 61-80.
+
+-   Shahzad Khan, Syed Majid Hussain, Fahad Yaqoob.(2013).
+    Figure 1 Theoretical Frame work of the Study
+    
+
+-   Vanhamme, J.
+    (2002).
+    La satisfaction des consommateurs spécifique à une transaction: définition, antécédents, mesures et modes. 
+    Recherche et applications en marketing (French Edition), 17(2), 55-85.
+    
+# Annexes
+
+Voir compte Github : CindyDCP
